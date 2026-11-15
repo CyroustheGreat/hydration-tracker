@@ -126,7 +126,16 @@
 
 <script>
 const DRINKS = ["Water","Sparkling","Tea","Coffee","Juice","Other"];
-const todayKey = () => new Date().toISOString().slice(0,10);
+// Local calendar day. toISOString() is UTC, so the day rolled over early for
+// anyone west of Greenwich (around 5pm in Vancouver during daylight time).
+function localDateKey(date) {
+  const d = date || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + day;
+}
+const todayKey = () => localDateKey();
 const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString(undefined, {weekday:"long", month:"long", day:"numeric"});
 let settings = JSON.parse(localStorage.getItem("ht_settings") || "{}");
 settings = { goal: settings.goal || 2000, glass: settings.glass || 250, bottle: settings.bottle || 500, unit: settings.unit || "ml" };
@@ -173,7 +182,7 @@ function render(){
   }
   // Last 7 days
   const data = loadData(); const days=[];
-  for(let i=6;i>=0;i--){ const dt=new Date(); dt.setDate(dt.getDate()-i); const k=dt.toISOString().slice(0,10); const t=(data[k]||[]).reduce((s,e)=>s+e.ml,0); days.push({k, label: dt.toLocaleDateString([], {weekday:"short"}), total:t}); }
+  for(let i=6;i>=0;i--){ const dt=new Date(); dt.setDate(dt.getDate()-i); const k=localDateKey(dt); const t=(data[k]||[]).reduce((s,e)=>s+e.ml,0); days.push({k, label: dt.toLocaleDateString([], {weekday:"short"}), total:t}); }
   const max = Math.max(settings.goal, ...days.map(d=>d.total));
   const bars = document.getElementById("bars"); bars.innerHTML="";
   days.forEach(d=>{ const col=document.createElement("div"); col.className="bar-col"; const h=Math.max(4, d.total/max*90); col.innerHTML='<small>'+(d.total?Math.round(d.total):"")+'</small><div class="bar'+(d.total>=settings.goal?" goal-met":"")+'" style="height:'+h+'px"></div><span>'+d.label+'</span>'; bars.appendChild(col); });
